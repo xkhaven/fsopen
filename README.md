@@ -1,2 +1,2 @@
 # fsopen
-Full Stack Open 2021
+Full Stack open 2021
