@@ -1,5 +1,5 @@
-import axios from 'axios'
 import React, { useEffect, useState } from 'react'
+import personsService from './services/persons'
 
 const Filter = ({value, handleChange}) => (
   <div>
@@ -19,9 +19,10 @@ const PersonForm = ({handleNewNameChange, handleNewNumberChange, newName, newNum
   </form>
 )
 
-const Persons = ({displayList}) => {
+const Persons = ({displayList, handleDeleteClick}) => {
   const Person = (person) => (
-    <li key={person.name}>{person.name}, {person.number}</li>
+    <li key={person.name}>{person.name}, {person.number}
+    <button key={person.name} onClick={() => handleDeleteClick(person.id)}>Delete</button></li>
   )
 
   return (
@@ -38,24 +39,56 @@ const App = () => {
   const [ searchFilter, setSearchFilter ] = useState('')
 
   useEffect(() => {
-    axios
-      .get('http://localhost:3001/persons')
-      .then(response => {
-        setPersons(response.data)
-      })
+    personsService
+      .getAll()
+      .then(result => setPersons(result))
   }, [])
 
   const handleAddClick = (e) => {
     e.preventDefault()
     if (!newName || !newNumber) return
-    if (persons.find(current => current.name.toLocaleLowerCase() === newName.toLocaleLowerCase())) {
-      alert(`${newName} is already added to phonebook`)
-      return
-    }
 
-    setPersons(persons.concat({'name': newName, 'number': newNumber}))
-    setNewName('')
-    setNewNumber('')
+    const exists = persons.find(p => p.name.toLocaleLowerCase() === newName.trim().toLocaleLowerCase())
+
+    if (exists) {
+      let message = `${newName} is already added to phonebook.`
+
+      if (newNumber.replace(/\D/g, '') === exists.number.replace(/\D/g, '')) {
+        alert(message)
+        return
+      }
+      else {
+        if (window.confirm(message + ' Do you want to replace the number with the new one?')) {
+          personsService
+            .update(exists.id, {'name': exists.name, 'number': newNumber.trim()})
+            .then(result => setPersons(persons.map(p => p.id === exists.id ? result : p)))
+            .catch(error => alert(error))
+
+          setNewName('')
+          setNewNumber('')
+        }
+      }
+    }
+    else {
+      personsService
+      .create({'name': newName.trim(), 'number': newNumber.trim()})
+      .then(newPerson => {
+        setPersons(persons.concat(newPerson))
+        setNewName('')
+        setNewNumber('')
+      })
+      .catch(error => alert(error))
+    }
+  }
+
+  const handleDeleteClick = (id) => {
+    const name = persons.find(p => p.id === id).name
+    if (window.confirm(`Are you sure to delete ${name}?`)) {
+      personsService
+      .remove(id)
+      .then(result => setPersons(persons.filter(curr => curr.id !== id)))
+      .catch(error => alert(error))
+    }
   }
 
   const handleNewNameChange = (e) => {
@@ -89,7 +122,7 @@ const App = () => {
       />
 
       <h3>Numbers</h3>
-      <Persons displayList={displayList} />
+      <Persons displayList={displayList} handleDeleteClick={handleDeleteClick} />
     </div>
   )
 }
