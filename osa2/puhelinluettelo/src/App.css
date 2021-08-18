@@ -1,0 +1,13 @@
+.message {
+  border: 2px solid #4A4A4A;
+  margin: 10px;
+  padding: 10px;
+}
+
+.error {
+  background: #FF5733;
+}
+
+.notify {
+  background: #90EE90;
+}
